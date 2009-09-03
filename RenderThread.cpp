@@ -231,23 +231,23 @@ CDIB* CRenderThread::Render(GP<DjVuImage> pImage, const CSize& size,
 
 	GRect rect(0, 0, szScaled.cx, szScaled.cy);
 
-	bool bScalePnmFixed = true;
+	bool bScalePnmFixed = displaySettings.bScaleColorPnm;
 
 	// Use fast scaling for thumbnails.
 	if (bThumbnail)
 		bScalePnmFixed = false;
 
-	// Results from PnmScaleFixed are comparable to libdjvu scaling,
-	// when zoom factor is greater than 0.5, so use default faster scaling
-	// in this case. Additionally, use the default scaling when requested
+	// Use default faster scaling when zoom factor is >= 1.0.
+	// Additionally, use the default scaling when requested
 	// image size is small, since quality does not matter at this
 	// scale. NOTE: this also deals with the special case of size (1, 1),
 	// which can force PnmScaleFixed into an infinite loop.
 	if ((szScaled.cx < 150 || szScaled.cy < 150)
-			|| (szScaled.cx >= szImage.cx / 2 || szScaled.cy >= szImage.cy / 2))
+			|| (szScaled.cx >= szImage.cx || szScaled.cy >= szImage.cy))
 		bScalePnmFixed = false;
 
 	// Disable PnmFixed scaling if we perform an integer reduction of the image.
+	/*
 	for (int nReduction = 1; nReduction <= 15; ++nReduction)
 	{
 		if (szScaled.cx*nReduction > szImage.cx - nReduction
@@ -259,6 +259,7 @@ CDIB* CRenderThread::Render(GP<DjVuImage> pImage, const CSize& size,
 			break;
 		}
 	}
+	*/
 
 	// Disable PnmFixed scaling for color images according to settings
 	GP<IW44Image> bg44 = pImage->get_bg44();
@@ -320,7 +321,7 @@ CDIB* CRenderThread::Render(GP<DjVuImage> pImage, const CSize& size,
 			pGPixmap = pGPixmap->rotate(nTotalRotate);
 
 		if (bScalePnmFixed)
-			pGPixmap = RescalePnm(pGPixmap, size.cx, size.cy);
+			pGPixmap = RescalePixmap_subpix(pGPixmap, size.cx, size.cy);
 
 		pBitmap = RenderPixmap(*pGPixmap, displaySettings);
 	}
@@ -330,9 +331,14 @@ CDIB* CRenderThread::Render(GP<DjVuImage> pImage, const CSize& size,
 			pGBitmap = pGBitmap->rotate(nTotalRotate);
 
 		if (bScalePnmFixed)
-			pGBitmap = RescalePnm(pGBitmap, size.cx, size.cy);
-
-		pBitmap = RenderBitmap(*pGBitmap, displaySettings);
+		{
+			pGPixmap = RescaleBitmap_subpix(pGBitmap, size.cx, size.cy);
+			pBitmap = RenderPixmap(*pGPixmap, displaySettings);
+		}
+		else
+		{
+			pBitmap = RenderBitmap(*pGBitmap, displaySettings);
+		}
 	}
 	else
 	{
