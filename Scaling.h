@@ -20,5 +20,5 @@
 
 #pragma once
 
-GP<GPixmap> RescaleBitmap_subpix(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight);
-GP<GPixmap> RescalePixmap_subpix(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight);
+GP<GBitmap> RescalePnm(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight);
+GP<GPixmap> RescalePnm(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight);

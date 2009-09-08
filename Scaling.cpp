@@ -35,7 +35,7 @@
 #define SCALESHIFT 12
 #define HALFSCALE  2048
 
-void horizontal_scale_subpix(const GPixel* inputxelrow, GPixel* newxelrow, UINT cols, UINT newcols, UINT sxscale)
+void horizontal_scale(const GPixel* inputxelrow, GPixel* newxelrow, UINT cols, UINT newcols, UINT sxscale)
 {
 	// Take the input row inputxelrow[], which is 'cols' columns wide, and
 	// scale it by a factor of 'sxcale', which is in SCALEths to create
@@ -47,9 +47,6 @@ void horizontal_scale_subpix(const GPixel* inputxelrow, GPixel* newxelrow, UINT 
 
 	const GPixel* piP = inputxelrow;
 	GPixel* piN = newxelrow;
-
-	// red
-	fraccoltofill = FULLSCALE/3;
 	for (UINT col = 0; col < cols; ++col, ++piP)
 	{
 		// Process one pixel from input ('inputxelrow')
@@ -64,126 +61,10 @@ void horizontal_scale_subpix(const GPixel* inputxelrow, GPixel* newxelrow, UINT 
 			// and 'b', plus a fraction of the current input pixel.
 
 			r += fraccoltofill * piP->r;
-			piN->r = (BYTE) (r >> SCALESHIFT);
-			r = g = b = 0;
-
-			// Set up to start filling next output column
-			++piN;
-			++newcol;
-			fraccolleft -= fraccoltofill;
-			fraccoltofill = FULLSCALE;
-		}
-
-		// There's not enough left in the current input pixel to fill up
-		// a whole output column, so just accumulate the remainder of the
-		// pixel into the current output column.
-		if (fraccolleft > 0)
-		{
-			r += fraccolleft * piP->r;
-
-			fraccoltofill -= fraccolleft;
-		}
-	}
-
-	while (newcol < newcols)
-	{
-		// We ran out of input columns before we filled up the output
-		// columns.  This would be because of rounding down.  For small
-		// images, we're probably missing only a tiny fraction of a column,
-		// but for large images, it could be multiple columns.
-
-		// So we fake the remaining output columns by copying the rightmost
-		// legitimate pixel.  We call this stretching.
-
-		r += fraccoltofill * (piP - 1)->r + HALFSCALE; // for rounding
-
-		piN->r = (BYTE) (r >>= SCALESHIFT);
-
-		++piN;
-		++newcol;
-		fraccoltofill = FULLSCALE;
-	}
-	newxelrow->r += 2*newxelrow->r;
-
-	// green
-	fraccoltofill = (2*FULLSCALE)/3;
-	piP = inputxelrow;
-	piN = newxelrow;
-	newcol = 0;
-	for (UINT col = 0; col < cols; ++col, ++piP)
-	{
-		// Process one pixel from input ('inputxelrow')
-		UINT fraccolleft = sxscale;
-
-		// Output all columns, if any, that can be filled using information
-		// from this input column, in addition what's already in the output column.
-		while (fraccolleft >= fraccoltofill)
-		{
-			// Generate one output pixel in 'newxelrow'.  It will consist
-			// of anything accumulated from prior input pixels in 'r','g',
-			// and 'b', plus a fraction of the current input pixel.
-
 			g += fraccoltofill * piP->g;
-			piN->g = (BYTE) (g >> SCALESHIFT);
-			r = g = b = 0;
-
-			// Set up to start filling next output column
-			++piN;
-			++newcol;
-			fraccolleft -= fraccoltofill;
-			fraccoltofill = FULLSCALE;
-		}
-
-		// There's not enough left in the current input pixel to fill up
-		// a whole output column, so just accumulate the remainder of the
-		// pixel into the current output column.
-		if (fraccolleft > 0)
-		{
-			g += fraccolleft * piP->g;
-
-			fraccoltofill -= fraccolleft;
-		}
-	}
-
-	while (newcol < newcols)
-	{
-		// We ran out of input columns before we filled up the output
-		// columns.  This would be because of rounding down.  For small
-		// images, we're probably missing only a tiny fraction of a column,
-		// but for large images, it could be multiple columns.
-
-		// So we fake the remaining output columns by copying the rightmost
-		// legitimate pixel.  We call this stretching.
-
-		g += fraccoltofill * (piP - 1)->g + HALFSCALE; // for rounding
-
-		piN->g = (BYTE) (g >>= SCALESHIFT);
-
-		++piN;
-		++newcol;
-		fraccoltofill = FULLSCALE;
-	}
-	newxelrow->g += newxelrow->g/2;
-
-	// blue
-	fraccoltofill = FULLSCALE;
-	piP = inputxelrow;
-	piN = newxelrow;
-	newcol = 0;
-	for (UINT col = 0; col < cols; ++col, ++piP)
-	{
-		// Process one pixel from input ('inputxelrow')
-		UINT fraccolleft = sxscale;
-
-		// Output all columns, if any, that can be filled using information
-		// from this input column, in addition what's already in the output column.
-		while (fraccolleft >= fraccoltofill)
-		{
-			// Generate one output pixel in 'newxelrow'.  It will consist
-			// of anything accumulated from prior input pixels in 'r','g',
-			// and 'b', plus a fraction of the current input pixel.
-
 			b += fraccoltofill * piP->b;
+			piN->r = (BYTE) (r >> SCALESHIFT);
+			piN->g = (BYTE) (g >> SCALESHIFT);
 			piN->b = (BYTE) (b >> SCALESHIFT);
 			r = g = b = 0;
 
@@ -199,6 +80,8 @@ void horizontal_scale_subpix(const GPixel* inputxelrow, GPixel* newxelrow, UINT 
 		// pixel into the current output column.
 		if (fraccolleft > 0)
 		{
+			r += fraccolleft * piP->r;
+			g += fraccolleft * piP->g;
 			b += fraccolleft * piP->b;
 
 			fraccoltofill -= fraccolleft;
@@ -215,8 +98,12 @@ void horizontal_scale_subpix(const GPixel* inputxelrow, GPixel* newxelrow, UINT 
 		// So we fake the remaining output columns by copying the rightmost
 		// legitimate pixel.  We call this stretching.
 
+		r += fraccoltofill * (piP - 1)->r + HALFSCALE; // for rounding
+		g += fraccoltofill * (piP - 1)->g + HALFSCALE; // for rounding
 		b += fraccoltofill * (piP - 1)->b + HALFSCALE; // for rounding
 
+		piN->r = (BYTE) (r >>= SCALESHIFT);
+		piN->g = (BYTE) (g >>= SCALESHIFT);
 		piN->b = (BYTE) (b >>= SCALESHIFT);
 
 		++piN;
@@ -225,23 +112,21 @@ void horizontal_scale_subpix(const GPixel* inputxelrow, GPixel* newxelrow, UINT 
 	}
 }
 
-void horizontal_scale_subpix(const BYTE* inputxelrow, GPixel* newxelrow, UINT cols, UINT newcols, UINT sxscale)
+void horizontal_scale(const BYTE* inputxelrow, BYTE* newxelrow, UINT cols, UINT newcols, UINT sxscale)
 {
 	UINT newcol = 0;
 	UINT fraccoltofill = FULLSCALE;
 	UINT r = 0;
 	const BYTE* piP = inputxelrow;
-	GPixel* piN = newxelrow;
+	BYTE* piN = newxelrow;
 
-	// red
-	fraccoltofill = FULLSCALE/3;
 	for (UINT col = 0; col < cols; ++col, ++piP)
 	{
 		UINT fraccolleft = sxscale;
 		while (fraccolleft >= fraccoltofill)
 		{
 			r += fraccoltofill * (*piP);
-			piN->r = (BYTE) (r >> SCALESHIFT);
+			*piN = (BYTE) (r >> SCALESHIFT);
 			r = 0;
 
 			++piN;
@@ -260,83 +145,7 @@ void horizontal_scale_subpix(const BYTE* inputxelrow, GPixel* newxelrow, UINT co
 	while (newcol < newcols)
 	{
 		r += fraccoltofill * (*(piP - 1)) + HALFSCALE;
-		piN->r = (BYTE) (r >>= SCALESHIFT);
-
-		++piN;
-		++newcol;
-		fraccoltofill = FULLSCALE;
-	}
-	newxelrow->r += 2*newxelrow->r;
-
-	// green
-	fraccoltofill = (2*FULLSCALE)/3;
-	piP = inputxelrow;
-	piN = newxelrow;
-	newcol = 0;
-	for (UINT col = 0; col < cols; ++col, ++piP)
-	{
-		UINT fraccolleft = sxscale;
-		while (fraccolleft >= fraccoltofill)
-		{
-			r += fraccoltofill * (*piP);
-			piN->g = (BYTE) (r >> SCALESHIFT);
-			r = 0;
-
-			++piN;
-			++newcol;
-			fraccolleft -= fraccoltofill;
-			fraccoltofill = FULLSCALE;
-		}
-
-		if (fraccolleft > 0)
-		{
-			r += fraccolleft * (*piP);
-			fraccoltofill -= fraccolleft;
-		}
-	}
-
-	while (newcol < newcols)
-	{
-		r += fraccoltofill * (*(piP - 1)) + HALFSCALE;
-		piN->g = (BYTE) (r >>= SCALESHIFT);
-
-		++piN;
-		++newcol;
-		fraccoltofill = FULLSCALE;
-	}
-	newxelrow->g += newxelrow->g/2;
-
-	// blue
-	fraccoltofill = FULLSCALE;
-	piP = inputxelrow;
-	piN = newxelrow;
-	newcol = 0;
-	for (UINT col = 0; col < cols; ++col, ++piP)
-	{
-		UINT fraccolleft = sxscale;
-		while (fraccolleft >= fraccoltofill)
-		{
-			r += fraccoltofill * (*piP);
-			piN->b = (BYTE) (r >> SCALESHIFT);
-			r = 0;
-
-			++piN;
-			++newcol;
-			fraccolleft -= fraccoltofill;
-			fraccoltofill = FULLSCALE;
-		}
-
-		if (fraccolleft > 0)
-		{
-			r += fraccolleft * (*piP);
-			fraccoltofill -= fraccolleft;
-		}
-	}
-
-	while (newcol < newcols)
-	{
-		r += fraccoltofill * (*(piP - 1)) + HALFSCALE;
-		piN->b = (BYTE) (r >>= SCALESHIFT);
+		*piN = (BYTE) (r >>= SCALESHIFT);
 
 		++piN;
 		++newcol;
@@ -344,7 +153,7 @@ void horizontal_scale_subpix(const BYTE* inputxelrow, GPixel* newxelrow, UINT co
 	}
 }
 
-GP<GPixmap> RescalePixmap_subpix(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight)
+GP<GPixmap> RescalePnm(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight)
 {
 	GP<GPixmap> pGPixmap = GPixmap::create(nHeight, nWidth);
 
@@ -358,7 +167,7 @@ GP<GPixmap> RescalePixmap_subpix(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight)
 	// Instead, we will run out of input while some of the output is
 	// unfilled.  We can address that by stretching, whereas the other
 	// case would require throwing away some of the input.
-	UINT sxscale = (FULLSCALE * newcols - 2*FULLSCALE/3 - 1) / cols;  // sub-pixel rendering eats up extra 2/3 of a pixel. round down to avoid overflows in horizontal_scale_subpix().
+	UINT sxscale = FULLSCALE * newcols / cols;
 	UINT syscale = FULLSCALE * newrows / rows;
 
 	GPixel* tempxelrow = (GPixel*) malloc(cols * sizeof(GPixel));
@@ -479,7 +288,7 @@ GP<GPixmap> RescalePixmap_subpix(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight)
 		}
 		else
 		{
-			horizontal_scale_subpix(tempxelrow, (*pGPixmap)[row], cols, newcols, sxscale);
+			horizontal_scale(tempxelrow, (*pGPixmap)[row], cols, newcols, sxscale);
 		}
 	}
 
@@ -489,9 +298,12 @@ GP<GPixmap> RescalePixmap_subpix(GP<GPixmap> pSrc, UINT nWidth, UINT nHeight)
 	return pGPixmap;
 }
 
-GP<GPixmap> RescaleBitmap_subpix(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight)
+GP<GBitmap> RescalePnm(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight)
 {
-	GP<GPixmap> pGPixmap = GPixmap::create(nHeight, nWidth);
+	const int align = 4;
+	int border = ((nWidth + align - 1) & ~(align - 1)) - nWidth;
+	GP<GBitmap> pGBitmap = GBitmap::create(nHeight, nWidth, border);
+	pGBitmap->change_grays(256);
 
 	UINT cols = pSrc->columns();
 	UINT rows = pSrc->rows();
@@ -505,11 +317,11 @@ GP<GPixmap> RescaleBitmap_subpix(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight)
 	int decrement = color / (nPaletteEntries - 1);
 	for (int i = nPaletteEntries - 1; i >= 0; --i)
 	{
-		grays[nPaletteEntries-i-1] = (color >> 16);
+		grays[i] = (color >> 16);
 		color -= decrement;
 	}
 
-	UINT sxscale = (FULLSCALE * newcols - 2*FULLSCALE/3 - 1) / cols;  // sub-pixel rendering eats up extra 2/3 of a pixel. round down to avoid overflows in horizontal_scale_subpix().
+	UINT sxscale = FULLSCALE * newcols / cols;
 	UINT syscale = FULLSCALE * newrows / rows;
 
 	BYTE* tempxelrow = (BYTE*) malloc(cols * sizeof(BYTE));
@@ -520,7 +332,7 @@ GP<GPixmap> RescaleBitmap_subpix(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight)
 			free(tempxelrow);
 		if (rs != NULL)
 			free(rs);
-		return pGPixmap;
+		return pGBitmap;
 	}
 
 	UINT rowsread = 0;
@@ -602,22 +414,19 @@ GP<GPixmap> RescaleBitmap_subpix(GP<GBitmap> pSrc, UINT nWidth, UINT nHeight)
 			fracrowtofill = FULLSCALE;
 		}
 
-		/*
-		// TODO: convert to RGB without sunpixel rendering...
 		if (newcols == cols)
 		{
 			// shortcut X scaling if possible
 			memcpy((*pGBitmap)[row], xelrow, newcols*sizeof(BYTE));
 		}
 		else
-		*/
 		{
-			horizontal_scale_subpix(tempxelrow, (*pGPixmap)[row], cols, newcols, sxscale);
+			horizontal_scale(tempxelrow, (*pGBitmap)[row], cols, newcols, sxscale);
 		}
 	}
 
 	free(tempxelrow);
 	free(rs);
 
-	return pGPixmap;
+	return pGBitmap;
 }
