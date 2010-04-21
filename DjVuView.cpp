@@ -650,8 +650,10 @@ void CDjVuView::DrawPage(CDC* pDC, int nPage)
 
 	COLORREF clrShadow = ChangeBrightness(clrBtnshadow, 0.75);
 	COLORREF clrBackground = ChangeBrightness(clrBtnshadow, 1.2);
+	/*
 	if (m_nType == Fullscreen || m_nType == Magnify && GetMainFrame()->IsFullscreenMode())
 		clrBackground = RGB(0, 0, 0);
+	*/
 
 	CPoint ptScroll = GetScrollPosition();
 
