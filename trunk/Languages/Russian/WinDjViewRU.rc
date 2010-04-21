@@ -637,7 +637,7 @@ BEGIN
     CONTROL         "",IDC_GAMMA,"msctls_trackbar32",WS_TABSTOP,65,63,183,12
     CONTROL         "Применять коррекцию при пе&чати",IDC_ADJUST_PRINTING,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,133,9
-    CONTROL         "High quality sub-pixel rendering (for LCD)",IDC_HQ_COLOR_SCALING,
+    CONTROL         "Применять субпиксельное сглаживание (для ЖК-мониторов)",IDC_HQ_COLOR_SCALING,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,93,241,10
     CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,111,241,1
     LTEXT           "&Единицы измерения:",IDC_STATIC,7,120,73,10
